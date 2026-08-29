@@ -1,0 +1,152 @@
+# RESITE-GIS Model Pre-Training & Hyperparameter Configuration
+# Aligned with model-training.md specifications
+
+project:
+  name: "RESITE-GIS Hazard Susceptibility Prediction"
+  version: "1.1.0"
+  target_region: "Chamoli District, Uttarakhand, India"
+  target_crs: "EPSG:32643"  # UTM Zone 43N
+  bounding_box_utm:
+    left: 872060.0
+    bottom: 3314100.0
+    right: 987870.0
+    top: 3451680.0
+  spatial_resolution_m: 30.0
+
+dataset:
+  raw_data_dir: "backend/data_pipeline/raw"
+  processed_data_dir: "backend/data_pipeline/processed"
+  raw_files:
+    dem: "srtm_52_06/srtm_52_06.tif"
+    ndvi: "Chamoli_Sentinel2_NDVI_10m.tif"
+    lulc: "Chamoli_ESA_WorldCover_LULC_10m.tif"
+    precipitation: "gpm_v07_precip_2023_7.tif"
+    landslide_catalog: "Global_Landslide_Catalog_Export_rows.json"
+    osm_pbf: "india-260824.osm.pbf"
+    population_dir: "population_ind_pak_general/population_ind_pak_general"
+    soil_dir: "wsrll_soil_data"
+  
+  feature_catalog:
+    - name: "elevation"
+      category: "Primary Elevation"
+      type: "continuous"
+      source: "SRTM DEM 90m (reprojected to 30m UTM)"
+      unit: "meters"
+    - name: "slope"
+      category: "Morphometric"
+      type: "continuous"
+      source: "Spatial Gradient on Metric Grid"
+      unit: "degrees"
+    - name: "aspect"
+      category: "Morphometric"
+      type: "continuous"
+      source: "Spatial Gradient on Metric Grid"
+      unit: "degrees (0-360)"
+    - name: "plan_curvature"
+      category: "Morphometric"
+      type: "continuous"
+      source: "Surface 2nd Derivative"
+      unit: "1/m"
+    - name: "profile_curvature"
+      category: "Morphometric"
+      type: "continuous"
+      source: "Surface 2nd Derivative"
+      unit: "1/m"
+    - name: "twi"
+      category: "Hydrological"
+      type: "continuous"
+      source: "Topographic Wetness Index"
+      unit: "dimensionless"
+    - name: "spi"
+      category: "Hydrological"
+      type: "continuous"
+      source: "Stream Power Index"
+      unit: "dimensionless"
+    - name: "dist_to_streams"
+      category: "Proximity Vector"
+      type: "continuous"
+      source: "OSM Vector Waterways (30m rasterized)"
+      unit: "meters"
+    - name: "dist_to_faults"
+      category: "Proximity Vector"
+      type: "continuous"
+      source: "Himalayan Main Central Thrust (MCT) Regional Shear Zone Proxy"
+      unit: "meters"
+    - name: "ndvi"
+      category: "Vegetation"
+      type: "continuous"
+      source: "Sentinel-2 Optical 10m (resampled to 30m)"
+      unit: "[-1, 1]"
+    - name: "lulc"
+      category: "Land Cover"
+      type: "categorical"
+      source: "ESA WorldCover 10m (resampled to 30m)"
+      unit: "discrete class"
+    - name: "precip_gpm"
+      category: "Dynamic Trigger"
+      type: "continuous"
+      source: "NASA GPM L3 IMERG v07"
+      unit: "mm/24h"
+
+  sampling:
+    target_positive_samples: 5000
+    target_negative_samples: 5000
+    negative_slope_threshold_deg: 10.0
+    split_ratios:
+      train: 0.70
+      val: 0.15
+      test: 0.15
+    random_seed: 42
+
+model_architecture:
+  model_type: "SusceptibilityNN (Deep MLP & 1D CNN)"
+  input_dimension: 12
+  layers:
+    - type: "Linear"
+      in_features: 12
+      out_features: 128
+      batch_norm: true
+      activation: "ReLU"
+      dropout: 0.3
+    - type: "Linear"
+      in_features: 128
+      out_features: 64
+      batch_norm: true
+      activation: "ReLU"
+      dropout: 0.2
+    - type: "Linear"
+      in_features: 64
+      out_features: 32
+      batch_norm: true
+      activation: "ReLU"
+      dropout: 0.0
+    - type: "Linear"
+      in_features: 32
+      out_features: 1
+      batch_norm: false
+      activation: "Sigmoid"
+      dropout: 0.0
+
+training_hyperparameters:
+  batch_size: 64
+  learning_rate: 0.001
+  optimizer: "AdamW"
+  weight_decay: 0.0001
+  loss_function: "BCELoss"
+  max_epochs: 50
+  early_stopping_patience: 10
+  lr_scheduler:
+    type: "ReduceLROnPlateau"
+    mode: "min"
+    factor: 0.5
+    patience: 5
+    min_lr: 1e-6
+  device: "cpu"  # or "cuda"
+
+quantization_and_deployment:
+  enable_int8_dynamic_quantization: true
+  target_latency_ms: 300
+  export_formats:
+    - "PyTorch Script (.pt)"
+    - "ONNX (.onnx)"
+  target_roc_auc: 0.88
