@@ -1,0 +1,11 @@
+{
+  "project": "RESITE-GIS",
+  "dataset_source": "SRTM 52_06 (Western & Central Himalayas)",
+  "live_precipitation_mm": 150.0,
+  "total_red_zones": 2370,
+  "total_safe_sites": 106,
+  "total_habitations_evaluated": 18,
+  "immediate_evacuation_queue": 0,
+  "short_term_relocation_queue": 4,
+  "medium_term_strategic_queue": 14
+}

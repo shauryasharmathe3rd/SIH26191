@@ -1,0 +1,35 @@
+# FastAPI Core & Server Stack
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# Database & Spatial Extensions
+SQLAlchemy>=2.0.28
+GeoAlchemy2>=0.14.0
+psycopg2-binary>=2.9.9
+asyncpg>=0.29.0
+
+# GIS, Vector Processing & Raster Operations
+geopandas>=0.14.3
+shapely>=2.0.3
+fiona>=1.9.5
+pyproj>=3.6.1
+rasterio>=1.3.9
+gdal>=3.8.4
+pysal>=2.4.0
+
+# Copernicus, Satellite & Remote Sensing Integration
+sentinelhub>=3.10.0
+earthengine-api>=0.1.390
+requests>=2.31.0
+httpx>=0.27.0
+
+# Mathematical Modeling & Machine Learning
+numpy>=1.26.4
+pandas>=2.2.1
+scikit-learn>=1.4.1.post1
+
+# Utility & Environment
+python-dotenv>=1.0.1
+python-multipart>=0.0.9
