@@ -225,3 +225,9 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 Once running, Swagger UI documentation is available at:
 - `http://localhost:8000/docs`
 - `http://localhost:8000/redoc`
+
+
+<!-- 
+The maps in the fronted that are showing the relocation lines are not as per the roads in the osm data. If people have to move they would not use nearest possible lines rather the roads
+  that are not in the red zones. Implement this feature that makes the relocation paths fall on the road data and not just the shortest line between the source and destination. Update the
+  wokings in the chain-of-thought.md file. -->

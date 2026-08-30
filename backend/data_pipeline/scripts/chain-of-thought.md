@@ -761,7 +761,7 @@ The integration of all pre-made API endpoints, services, schemas, and AI/GIS dec
 ---
 
 ### 1. Understanding & Architecture Alignment
-Based on [README.md](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/README.md), [chain-of-thought.md](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/data_pipeline/scripts/chain-of-thought.md), and [backend-description.md](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/backend-description.md), the **RESITE-GIS** engine implements:
+Based on [README.md], [chain-of-thought.md], and [backend-description.md], the **RESITE-GIS** engine implements:
 1. **Dynamic Multi-Hazard Red-Zoning ($HI$)**: Computes live landslide & flood risk using DEM geomorphometry, proximity to fault lines and drainage channels, and live rainfall triggers ($P_{\text{live}}$).
 2. **Safe Site Carrying Capacity Index ($CCI$)**: Evaluates relocation parcels ($0 - 100$) using Multi-Criteria Decision Analysis (MCDA) across slope stability ($< 15^\circ$), transit accessibility ($\le 2\text{ km}$), flood avoidance ($> 500\text{ m}$), and Sentinel-2 unbuilt buildable land.
 3. **Resettlement Prioritization Queue**: Automates habitation queuing into **Immediate (0–30 Days)**, **Short-Term (1–6 Months)**, and **Medium-Term (Strategic)** tiers, pairing each settlement with its nearest optimal safe parcel.
@@ -772,26 +772,26 @@ Based on [README.md](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/README.m
 ### 2. Implementation Summary
 
 #### A. Core Configuration & Database Models
-- **[app/config.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/config.py)** & **[app/core/config.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/core/config.py)**: Centralized settings for Copernicus CDSE, Sentinel-Hub, Overpass QL, OpenWeather, and processed data directory resolution.
-- **[app/models/spatial_models.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/models/spatial_models.py)**: PostGIS spatial models (`Habitation`, `RedZonePolygon`, `SafeRelocationSite`).
-- **[app/models/susceptibility_model.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/models/susceptibility_model.py)**: `SusceptibilityNN`, `SusceptibilityConv1D`, `HeteroSusceptibilityNN`, and `quantize_model_for_inference`.
+- **[app/config.py]** & **[app/core/config.py]**: Centralized settings for Copernicus CDSE, Sentinel-Hub, Overpass QL, OpenWeather, and processed data directory resolution.
+- **[app/models/spatial_models.py]**: PostGIS spatial models (`Habitation`, `RedZonePolygon`, `SafeRelocationSite`).
+- **[app/models/susceptibility_model.py]**: `SusceptibilityNN`, `SusceptibilityConv1D`, `HeteroSusceptibilityNN`, and `quantize_model_for_inference`.
 
-#### B. Pydantic Schemas ([app/schemas/](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/schemas/))
+#### B. Pydantic Schemas ([app/schemas/])
 - **`common.py`**: `APIResponse`, `Coordinates`, `BoundingBox`.
 - **`evaluation.py`**: `SiteRequest`, `SiteEvaluationResponse`, `SusceptibilityRequest`, `SusceptibilityResponse`, GeoJSON types.
 - **`satellite.py`**: `BBoxRequest`, `LandCoverResponse`, `NDVIResponse`, `NDWIResponse`.
 - **`osm.py`**: `OSMAllFeaturesResponse`, `OSMQueryResponse`, `OSMFeatureStats`.
 - **`weather.py`**: `CurrentWeatherResponse`, `ForecastResponse`, `CloudburstCheckResponse`.
 
-#### C. Service Layer ([app/services/](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/))
-- **[evaluation_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/evaluation_service.py)**: Concurrent multi-service orchestrator (`asyncio.gather`) computing Carrying Capacity Index ($CCI$) and resettlement suitability verdicts.
-- **[spatial_pipeline_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/spatial_pipeline_service.py)**: Loads and dynamically queries `red_zones_dynamic.geojson`, `safe_relocation_sites.geojson`, `resettlement_priority_queue.geojson`, and nearest-safe-site spatial pairing.
-- **[susceptibility_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/susceptibility_service.py)**: AI inference engine loading `scaler.joblib` / `scaler_params.json` for 12-factor normalization and sub-millisecond INT8 inference.
-- **[satellite_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/satellite_service.py)**: CDSE / SentinelHub WMS integration with NDVI, NDWI flood detection, and 4-class land cover analysis.
-- **[osm_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/osm_service.py)**: Overpass API vector client for buildings, highways, and waterways with fallback caching.
-- **[weather_service.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/weather_service.py)**: Real-time weather, 6h/24h rainfall forecast, and cloudburst trigger evaluation ($>100\text{ mm / 3h}$).
+#### C. Service Layer ([app/services/])
+- **[evaluation_service.py]**: Concurrent multi-service orchestrator (`asyncio.gather`) computing Carrying Capacity Index ($CCI$) and resettlement suitability verdicts.
+- **[spatial_pipeline_service.py]**: Loads and dynamically queries `red_zones_dynamic.geojson`, `safe_relocation_sites.geojson`, `resettlement_priority_queue.geojson`, and nearest-safe-site spatial pairing.
+- **[susceptibility_service.py]**: AI inference engine loading `scaler.joblib` / `scaler_params.json` for 12-factor normalization and sub-millisecond INT8 inference.
+- **[satellite_service.py]**: CDSE / SentinelHub WMS integration with NDVI, NDWI flood detection, and 4-class land cover analysis.
+- **[osm_service.py]**: Overpass API vector client for buildings, highways, and waterways with fallback caching.
+- **[weather_service.py]**: Real-time weather, 6h/24h rainfall forecast, and cloudburst trigger evaluation ($>100\text{ mm / 3h}$).
 
-#### D. API Routers & Entry Point ([main.py](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/main.py))
+#### D. API Routers & Entry Point 
 
 | Method | Route | Description |
 | :--- | :--- | :--- |
@@ -828,9 +828,9 @@ Here is an end-to-end breakdown of how the backend uses the AI hazard prediction
 ---
 
 ### 1. Model Architecture & Optimization
-- **Model Definition**: Located in [`backend/app/models/susceptibility_model.py`](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/models/susceptibility_model.py#L13-L57), the primary network is **`SusceptibilityNN`**, a deep Multi-Layer Perceptron (MLP):
+- **Model Definition**: Located in [`backend/app/models/susceptibility_model.py`], the primary network is **`SusceptibilityNN`**, a deep Multi-Layer Perceptron (MLP):
   $$\text{Input}(12) \xrightarrow{\text{Dense}} 128 \xrightarrow{\text{Dense}} 64 \xrightarrow{\text{Dense}} 32 \xrightarrow{\text{Dense}} 1 \xrightarrow{\text{Sigmoid}} P(\text{Failure}) \in [0.0, 1.0]$$
-- **Dynamic INT8 Quantization**: The function [`quantize_model_for_inference`](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/models/susceptibility_model.py#L199-L210) quantizes linear layer weights into `torch.qint8`. This shrinks memory footprint and allows sub-millisecond CPU inference directly inside FastAPI request cycles.
+- **Dynamic INT8 Quantization**: The function [`quantize_model_for_inference`] quantizes linear layer weights into `torch.qint8`. This shrinks memory footprint and allows sub-millisecond CPU inference directly inside FastAPI request cycles.
 
 ---
 
@@ -852,7 +852,7 @@ The model requires 12 normalized environmental and triggering conditioning facto
 ---
 
 ### 3. Feature Scaling & Inference Workflow
-In [`backend/app/services/susceptibility_service.py`](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/susceptibility_service.py):
+In [`backend/app/services/susceptibility_service.py`]:
 
 ```
 API Request (lat, lon, rainfall_mm OR 12-feature vector)
@@ -883,11 +883,11 @@ API Request (lat, lon, rainfall_mm OR 12-feature vector)
 ### 4. Integration into Decision-Support Workflows
 
 #### A. Direct Susceptibility API Endpoint
-- **`POST /api/v1/evaluate/susceptibility`** in [`backend/app/api/v1/evaluation_routes.py`](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/api/v1/evaluation_routes.py#L35-L71):
+- **`POST /api/v1/evaluate/susceptibility`** in [`backend/app/api/v1/evaluation_routes.py`]:
   Takes either raw environmental parameters or a coordinate `(lat, lon)` with real-time rainfall `rainfall_mm` and returns the predicted risk probability, hazard tier, and actionable advisory.
 
 #### B. Safe Relocation Site Evaluation
-- **`POST /api/v1/evaluate/site`** in [`backend/app/services/evaluation_service.py`](file:///Users/satyamkumar/Desktop/SIHTEAM/SIH26191/backend/app/services/evaluation_service.py#L13-L97):
+- **`POST /api/v1/evaluate/site`** in [`backend/app/services/evaluation_service.py`]:
   When assessing candidate relocation sites:
   1. The AI Susceptibility score is computed for the parcel.
   2. Multi-Criteria Decision Analysis (MCDA) calculates the Carrying Capacity Index ($CCI$).
@@ -895,4 +895,55 @@ API Request (lat, lon, rainfall_mm OR 12-feature vector)
 
 #### C. Live Rainfall Slider Simulation
 - **`GET /api/v1/evaluate/red-zones?rainfall_mm=...`**:
-  The rainfall trigger parameter dynamically scales the hazard boundaries and risk scores of multi-hazard red zone polygons in real time for dashboard simulations.  
+  The rainfall trigger parameter dynamically scales the hazard boundaries and risk scores of multi-hazard red zone polygons in real time for dashboard simulations. 
+
+    ──────
+  ### Summary of Changes
+
+  #### 1. Removal of Static and Demo Data
+
+  • **disasterData.ts**: Removed hardcoded static arrays (MOCK_DISTRICTS, MOCK_INCIDENT_ALERTS, MOCK_DATA_SOURCES, MOCK_AUDIT_LOGS, NATIONAL_STATS). Replaced with default type-safe
+  fallbacks.
+  • **DisasterContext.tsx**: Removed all mock state initializations. Global state (districts, activeAlerts, dataSources, nationalStats, liveRedZones, liveSafeSites, liveResettlementQueue,
+  backendSummary) is now dynamically fetched and maintained asynchronously from the backend API.
+  • UI Components:
+      • IncidentCommandCenter.tsx: Dynamically computes road corridor statuses and tactical SAR unit deployments from live backend sector and resource data.
+      • CarryingCapacityView.tsx, VulnerabilityAssessmentView.tsx, ScenarioSimulator.tsx, ProactiveRelocationModule.tsx: Added robust loading guards and dynamic data bindings.
+
+
+  #### 2. Backend Dynamic Endpoints & Synthesis
+
+  • **spatial_pipeline_service.py**:
+      • Added get_districts_intelligence() to synthesize operational district dossiers from the processed GIS layers (red_zones_dynamic.geojson, safe_relocation_sites.geojson,
+      resettlement_priority_queue.geojson, dataset_summary.json).
+      • Added get_active_alerts() to generate dynamic alert feeds based on live rainfall thresholds and high-hazard sectors.
+      • Added get_data_sources_telemetry() to report real-time statuses and latencies for all 12 satellite, radar, and pipeline feeds.
+      • Added get_national_statistics() to dynamically calculate aggregated indicators across sectors.
+  • **evaluation_routes.py**:
+      • Exposed /api/v1/evaluate/districts, /api/v1/evaluate/alerts, /api/v1/evaluate/data-sources, /api/v1/evaluate/national-stats.
+
+
+  #### 3. Frontend API Client & Schema Alignment
+
+  • **api.ts**: Added type-safe methods (getDistricts(), getActiveAlerts(), getDataSources(), getNationalStats()).
+  • **index.ts**: Added and aligned NationalStats and enriched EvacuationRoute interfaces.
+
+  #### 4. Algorithmic Consistency with Documentation
+
+  • Dynamic Multi-Hazard Red-Zoning (HI):
+
+    HI = w₁·Slope + w₂·Runoff + w₃·Historical Scar + w₄·P
+                                                         live
+
+  • Carrying Capacity Index (CCI) of Safe Sites (MCDA):
+
+               ∑wᵢSᵢ
+    CCI = ─────────────── × 100
+          Density Penalty
+
+  • 3-Tier Resettlement Prioritization Queue: Habitations ranked by composite risk into Immediate (HI > 0.75), Short-Term (0.50 ≤ HI < 0.75), and Medium-Term (HI < 0.50).
+  • Physics-Informed & INT8 Quantized Susceptibility Model: Executing PyTorch SusceptibilityNN forward passes via /api/v1/evaluate/susceptibility.
+  ──────
+  ### Verification
+
+  • Both backend test suite and frontend TypeScript build (npm run build) completed with zero errors. 

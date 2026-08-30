@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Inter', 'Noto Sans', 'Noto Sans Devanagari', system-ui, sans-serif;
+  }
+  
+  html {
+    font-family: var(--font-sans);
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #070F1E;
+    color: #F1F5F9;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'tnum';
+  }
+}
+
+/* Custom Government Command Center Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B192C;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1E3E62;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2A5584;
+}
+
+/* Leaflet Map Styling for Government Command UI */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #070F1E !important;
+  font-family: var(--font-sans) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0B192C !important;
+  color: #F8FAFC !important;
+  border: 1px solid #1E3E62 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background: #0B192C !important;
+  border: 1px solid #1E3E62 !important;
+}
+
+.leaflet-control-zoom a {
+  background-color: #0B192C !important;
+  color: #F8FAFC !important;
+  border-color: #1E3E62 !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: #1E3E62 !important;
+  color: #FDE68A !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(11, 25, 44, 0.8) !important;
+  color: #94A3B8 !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #CBD5E1 !important;
+}
+
+/* Government High-Contrast & Typography Accessibility Controls */
+.font-scale-sm {
+  font-size: 0.875rem;
+}
+.font-scale-base {
+  font-size: 1rem;
+}
+.font-scale-lg {
+  font-size: 1.125rem;
+}
+
+.high-contrast {
+  --bg-primary: #000000;
+  --bg-surface: #0a0a0a;
+  --border-color: #ffffff;
+  --text-primary: #ffffff;
+  --text-secondary: #ffff00;
+}
+
+.high-contrast * {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Operational Red-Zone Pulse */
+@keyframes redZoneGlow {
+  0% {
+    stroke-opacity: 0.9;
+    fill-opacity: 0.35;
+  }
+  50% {
+    stroke-opacity: 0.4;
+    fill-opacity: 0.15;
+  }
+  100% {
+    stroke-opacity: 0.9;
+    fill-opacity: 0.35;
+  }
+}
+
+.red-zone-pulse {
+  animation: redZoneGlow 2.5s infinite ease-in-out;
+}
+
+/* Print/SITREP Export Styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Touch Device Optimization */
+@media (pointer: coarse) {
+  button, a, input, select {
+    touch-action: manipulation;
+  }
+}
+

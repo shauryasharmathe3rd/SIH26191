@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from app.schemas.evaluation import (
     SiteRequest,
@@ -127,3 +127,48 @@ async def get_pipeline_summary() -> Dict[str, Any]:
         return spatial_pipeline_service.get_pipeline_summary()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch summary: {str(e)}")
+
+
+@router.get("/districts")
+async def get_districts() -> List[Dict[str, Any]]:
+    """
+    Get all dynamic operational district dossiers synthesized from the processed GIS layers,
+    resettlement queue, safe sites, and weather telemetry.
+    """
+    try:
+        return spatial_pipeline_service.get_districts_intelligence()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch districts intelligence: {str(e)}")
+
+
+@router.get("/alerts")
+async def get_active_alerts() -> List[Dict[str, Any]]:
+    """
+    Get dynamic incident alerts stream generated from high-risk red zones and live weather triggers.
+    """
+    try:
+        return spatial_pipeline_service.get_active_alerts()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch active alerts: {str(e)}")
+
+
+@router.get("/data-sources")
+async def get_data_sources() -> List[Dict[str, Any]]:
+    """
+    Get live status, telemetry latency, and ingestion metrics for the 12 integrated data feeds.
+    """
+    try:
+        return spatial_pipeline_service.get_data_sources_telemetry()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch data sources: {str(e)}")
+
+
+@router.get("/national-stats")
+async def get_national_stats() -> Dict[str, Any]:
+    """
+    Get aggregated national situation indicators calculated dynamically across all districts.
+    """
+    try:
+        return spatial_pipeline_service.get_national_statistics()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch national stats: {str(e)}")

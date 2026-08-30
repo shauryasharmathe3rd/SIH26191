@@ -354,18 +354,18 @@ The primary susceptibility model is structured as a Deep Neural Network designed
 
 INPUT TENSOR (N, C) or (N, C, H, W)
 [Slope, Aspect, TWI, SPI, NDVI, Dist_Faults, Dist_Streams, Precip_GPM]
-│
-▼
+                              │
+                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Layer 1: Linear / Conv1D (C -> 128) + BatchNorm + ReLU   │
 └─────────────────────────────┬────────────────────────────┘
-│ Dropout (p = 0.3)
-▼
+                              │ Dropout (p = 0.3)
+                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Layer 2: Linear / Conv1D (128 -> 64) + BatchNorm + ReLU  │
 └─────────────────────────────┬────────────────────────────┘
-│ Dropout (p = 0.2)
-▼
+                              │ Dropout (p = 0.2)
+                              ▼
 ┌──────────────────────────────────────────────────────────┐
 │ Layer 3: Linear / Conv1D (64 -> 32) + BatchNorm + ReLU   │
 └─────────────────────────────┬────────────────────────────┘
