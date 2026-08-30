@@ -360,3 +360,111 @@ docker-compose up --build
 * [ ] **3D Terrain Simulation:** Implement CesiumJS for 3D volumetric landslide movement and inundation simulations.
 * [ ] **Federated Learning:** Leverage the `Susceptibility-Mapping-FL-Hetero` module for privacy-preserving multi-district model training.
 * [ ] **Offline Edge Mode:** Package lightweight spatial layers for offline deployment in local Emergency Operation Centers (EOCs).
+
+
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 1: TELEMETRY & INGESTION WORKFLOW                                                                                │
+│                                                                                                                        │
+│  [ CartoDEM / SRTM 90m ]         [ Sentinel-1 SAR & Sentinel-2 Optical ]         [ NASA GPM IMERG & OpenWeather ]     │
+│  (Elevation z, 6000×6000 px)     (10m Bands: NDVI, NDWI, WorldCover LULC)         (Monsoon Precip Trigger: P_live)     │
+│            │                                         │                                           │                     │
+│            ▼                                         ▼                                           ▼                     │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────────────────┐                  │
+│   │ Coordinate Harmonization & Feature Extraction Pipeline (EPSG:32643 UTM Grid)                   │                  │
+│   │ • Geodesic Rescaling: Δx = Δλ·111320·cos(φ), Δy = Δφ·111320                                      │                  │
+│   │ • Geomorphometry Fitting: Slope θ = arctan(|∇z|)·(180/π), Aspect, Curvatures (Plan/Profile)     │                  │
+│   │ • Hydrological & Proximity Derivatives: TWI, SPI, Dist_to_Streams (OSM), Dist_to_Faults (MCT)   │                  │
+│   └────────────────────────────────────────────────┬────────────────────────────────────────────────┘                  │
+└────────────────────────────────────────────────────┼───────────────────────────────────────────────────────────────────┘
+                                                     │ 12 Normalized Spatial Conditioning Variables (C = 12)
+                                                     ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 2: DYNAMIC ANALYTICS & AI RISK INFERENCE WORKFLOW                                                                │
+│                                                                                                                        │
+│  ┌───────────────────────────────────────────────────────┐   ┌──────────────────────────────────────────────────────┐  │
+│  │ A. Dynamic Multi-Hazard Red-Zoning Pipeline (MCDA)    │   │ B. AI Hazard Susceptibility Workflow                │  │
+│  │                                                       │   │    (`SusceptibilityNN` PyTorch Engine)               │  │
+│  │   Hazard Index Formula:                               │   │                                                      │  │
+│  │   HI = w₁·Slope + w₂·Runoff + w₃·Scar + w₄·P_live     │   │   Input Vector (C=12)                                │  │
+│  │   Where:                                              │   │     │ (StandardScaler Normalization)                 │  │
+│  │   • w₁ = 0.35 (Terrain Slope > 30°)                   │   │     ▼                                                │  │
+│  │   • w₂ = 0.25 (Hydrological Drainage Corridors)       │   │   Dense(12 → 128) + BatchNorm + ReLU (Dropout p=0.3)    │  │
+│  │   • w₃ = 0.15 (NASA GLC Historical Scars)             │   │     │                                                │  │
+│  │   • w₄ = 0.25 (Live Rain Trigger, e.g., P_live=150mm)│   │     ▼                                                │  │
+│  │                                                       │   │   Dense(128 → 64) + BatchNorm + ReLU (Dropout p=0.2)     │  │
+│  │   Output: Continuous Spatial Hazard Grid              │   │     │                                                │  │
+│  └───────────────────────────┬───────────────────────────┘   │     ▼                                                │  │
+│                              │                               │   Dense(64 → 32)   + BatchNorm + ReLU                   │  │
+│                              │                               │     │                                                │  │
+│                              │                               │     ▼                                                │  │
+│                              │                               │   Dense(32 → 1)    + Sigmoid Activation              │  │
+│                              │                               │     │                                                │  │
+│                              │                               │     ▼ (INT8 CPU Quantized Inference: <300ms)         │  │
+│                              │                               │   Output: Failure Probability P(Failure) ∈ [0.0, 1.0] │  │
+│                              │                               └──────────────────────────┬───────────────────────────┘  │
+└──────────────────────────────┼──────────────────────────────────────────────────────────┼──────────────────────────────┘
+                               └───────────────────────────┬──────────────────────────────┘
+                                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 3: HAZARD ZONATION & SETTLEMENT INTERSECTION WORKFLOW                                                           │
+│                                                                                                                        │
+│                         [ Spatial Decision Gate: HI & P(Failure) Thresholds ]                                          │
+│                                                   │                                                                    │
+│                     ┌─────────────────────────────┴─────────────────────────────┐                                      │
+│                     ▼ (HI ≥ 0.75 OR P ≥ 0.75)                                  ▼ (0.50 ≤ HI < 0.75)                     │
+│              🔴 Dynamic Red Zone                                         🟠 Warning Buffer Zone                         │
+│       (Critical Evacuation Polygon Features)                     (Pre-Monsoon Slope Monitoring)                        │
+└─────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────┘
+                              │ Spatial Intersects OpenStreetMap Habitations (Points & Residential Polygons)
+                              ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 4: RESETTLEMENT QUEUEING & RECEIVING SITE EVALUATION WORKFLOW                                                    │
+│                                                                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ A. Vulnerability Prioritization Workflow                                                                        │  │
+│  │    Habitation Risk Scoring: R = Hazard (HI) × Exposure (Pop Density) × Vulnerability                              │  │
+│  │                                                                                                                  │  │
+│  │   ├── Tier 1: 🚨 Immediate Evacuation (0–30 Days)  │ HI > 0.75 or Active Failure Scars                            │  │
+│  │   ├── Tier 2: ⚠️ Short-Term Resettlement (1–6 Mos) │ 0.50 ≤ HI ≤ 0.75 or High-Density Buffer Zones                │  │
+│  │   └── Tier 3: 🔵 Medium-Term Resettlement (Strategic)│ HI < 0.50 or Subsidence Trends                                │  │
+│  └─────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────┘  │
+│                                                            │ Spatial Pairing: Match Habitation to Nearest Candidate Parcel
+│                                                            ▼                                                           │
+│  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ B. Carrying Capacity Index (CCI) Evaluation Workflow (Multi-Criteria Decision Analysis)                          │  │
+│  │                                                                                                                  │  │
+│  │                             w₁·S₁ + w₂·S₂ + w₃·S₃ + w₄·S₄                                                       │  │
+│  │                    CCI = ─────────────────────────────────── × 100                                               │  │
+│  │                                 Population Density Factor                                                        │  │
+│  │                                                                                                                  │  │
+│  │   Evaluated Parcel Vector Criteria:                                                                              │  │
+│  │   • S₁: Terrain Slope Stability (Weight = 0.30, Slope < 15°)                                                    │  │
+│  │   • S₂: River Buffer Distance (Weight = 0.25, Buffer > 500m outside Flood Inundation)                            │  │
+│  │   • S₃: Highway Proximity (Weight = 0.25, Distance ≤ 2km from Arterial Network)                                  │  │
+│  │   • S₄: Unbuilt Land Cover (Weight = 0.20, Sentinel-2 Buildability Validation)                                   │  │
+│  │                                                                                                                  │  │
+│  │   [ Decision Logic Gate ]                                                                                        │  │
+│  │   IF (CCI ≥ 75) AND (P(Failure) < 0.35) ──► ✅ Approved Permanent Relocation Parcel                               │  │
+│  │   ELSE ─────────────────────────────────► ❌ Rejected Parcel (Triggers Alternate Parcel Scan)                   │  │
+│  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────┘
+                                                          │ Verified Relocation Vectors & Route Geometry
+                                                          ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ STAGE 5: ROAD ROUTING & DISASTER RESPONSE WORKFLOW                                                                     │
+│                                                                                                                        │
+│  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ OSMRoutingService Egress Workflow                                                                                │  │
+│  │ • Waypoint Processing: Computes serpentine mountain-road corridors (8–40 nodes) along OSM highways                │  │
+│  │ • Hazard Avoidance Offset: Applies normal-vector offsets to stay clear of active Red Zone perimeters             │  │
+│  │ • Transit Time Estimation: 38 km/h (Primary Highways) / 28 km/h (Secondary Mountain Roads)                        │  │
+│  └─────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────┘  │
+│                                                            │ Structured GeoJSON Data Streams & Dynamic API Endpoints
+│                                                            ▼
+│  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐  │
+│  │ React 19 SDMA Dashboard Workflow                                                                                 │  │
+│  │ • Live Map Layers: Interactive Leaflet Red Zone Overlays & Road Evacuation Corridors                              │  │
+│  │ • Operational Simulation: Dynamic Rainfall Slider recalculates hazard boundaries in real time                     │  │
+│  │ • Government Governance: Cryptographic SHA-256 Audit Trail & Official SITREP GeoJSON Exporter                    │  │
+│  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
