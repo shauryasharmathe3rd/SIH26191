@@ -81,3 +81,61 @@ async def get_all_features(bbox: str) -> Dict[str, Any]:
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch features: {str(e)}")
+
+
+from pydantic import BaseModel, Field
+from typing import Optional
+
+
+class RouteRequest(BaseModel):
+    start_lat: float = Field(..., ge=-90.0, le=90.0, description="Start latitude (Danger Red Zone)")
+    start_lon: float = Field(..., ge=-180.0, le=180.0, description="Start longitude (Danger Red Zone)")
+    end_lat: float = Field(..., ge=-90.0, le=90.0, description="Destination latitude (Safe Relocation Zone)")
+    end_lon: float = Field(..., ge=-180.0, le=180.0, description="Destination longitude (Safe Relocation Zone)")
+    start_name: Optional[str] = Field(default="Danger Red Zone", description="Origin hazard zone label")
+    end_name: Optional[str] = Field(default="Safe Relocation Zone", description="Destination safe zone label")
+
+
+@router.post("/route")
+async def calculate_route(request: RouteRequest) -> Dict[str, Any]:
+    """
+    Calculate real driving route between Danger/Red Zone start location and Safe Zone destination
+    using OSRM Vector Engine from overlay_mapping/overlay.py.
+    """
+    try:
+        from overlay_mapping.overlay import get_danger_to_safe_route
+        result = get_danger_to_safe_route(
+            danger_coords=(request.start_lat, request.start_lon),
+            safe_coords=(request.end_lat, request.end_lon),
+            danger_name=request.start_name or "Danger Red Zone",
+            safe_name=request.end_name or "Safe Relocation Zone"
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate route: {str(e)}")
+
+
+@router.get("/route")
+async def get_route_get(
+    start_lat: float,
+    start_lon: float,
+    end_lat: float,
+    end_lon: float,
+    start_name: str = "Danger Red Zone",
+    end_name: str = "Safe Relocation Zone"
+) -> Dict[str, Any]:
+    """
+    GET endpoint to calculate driving route between Danger/Red Zone start location and Safe Zone destination
+    using OSRM Vector Engine from overlay_mapping/overlay.py.
+    """
+    try:
+        from overlay_mapping.overlay import get_danger_to_safe_route
+        result = get_danger_to_safe_route(
+            danger_coords=(start_lat, start_lon),
+            safe_coords=(end_lat, end_lon),
+            danger_name=start_name,
+            safe_name=end_name
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to calculate route: {str(e)}")

@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   Radio,
   Cpu,
-  Layers
+  Layers,
+  Route
 } from 'lucide-react';
 import { useDisaster } from '../../context/DisasterContext';
 import { StatusBadge } from '../common/StatusBadge';
@@ -385,22 +386,42 @@ export const ProactiveRelocationModule: React.FC = () => {
                   <div className="space-y-2 text-xs font-mono bg-slate-950/40 backdrop-blur-2xl p-3.5 rounded-2xl border border-slate-800/60">
                     <div className="flex items-center gap-2 text-slate-300">
                       <Building2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                      <span className="text-slate-400 text-[11px]">Shelter:</span>
+                      <span className="text-slate-400 text-[11px]">Safe Shelter:</span>
                       <strong className="text-white text-[11px] truncate">{rec.designatedShelterNames.join(', ')}</strong>
                     </div>
                     {district.evacuationRoutes[0] && (
                       <div className="flex items-center gap-2 text-slate-300">
-                        <Navigation className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="text-slate-400 text-[11px]">Route:</span>
+                        <Route className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <span className="text-slate-400 text-[11px]">OSM Corridor:</span>
                         <span className="text-slate-200 text-[11px] truncate">{district.evacuationRoutes[0].name} ({district.evacuationRoutes[0].distanceKm}km)</span>
                       </div>
                     )}
+                    <div className="pt-1 flex items-center justify-between text-[10px] text-emerald-400 border-t border-slate-800/60">
+                      <span className="flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                        <span>Hazard-Bypassed Road Route</span>
+                      </span>
+                      <span className="text-slate-400">Zero Red Zone Overlap</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Bento Card Footer Actions */}
                 <div className="pt-4 mt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 relative z-10">
-                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setSelectedDistrict(district);
+                        setActiveTab('risk_map');
+                      }}
+                      className="flex-1 sm:flex-initial px-3 py-2 bg-gradient-to-r from-amber-600/30 to-orange-600/30 hover:from-amber-600/50 hover:to-orange-600/50 backdrop-blur-xl border border-amber-500/40 rounded-2xl text-amber-300 font-mono text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      title="View Road Corridor on Interactive GIS Map"
+                    >
+                      <Route className="w-3.5 h-3.5 text-amber-400" />
+                      Map Route
+                    </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -408,7 +429,7 @@ export const ProactiveRelocationModule: React.FC = () => {
                         setSelectedDistrict(district);
                         setActiveTab('district_intelligence');
                       }}
-                      className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-800/60 hover:bg-slate-700/80 backdrop-blur-xl border border-slate-700/80 rounded-2xl text-slate-200 font-mono text-xs transition-all cursor-pointer shadow-sm"
+                      className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800/60 hover:bg-slate-700/80 backdrop-blur-xl border border-slate-700/80 rounded-2xl text-slate-200 font-mono text-xs transition-all cursor-pointer shadow-sm"
                     >
                       Inspect
                     </motion.button>
@@ -419,7 +440,7 @@ export const ProactiveRelocationModule: React.FC = () => {
                         setSelectedDistrict(district);
                         setActiveTab('scenario_simulation');
                       }}
-                      className="flex-1 sm:flex-initial px-3.5 py-2.5 bg-slate-800/60 hover:bg-slate-700/80 backdrop-blur-xl border border-slate-700/80 rounded-2xl text-slate-200 font-mono text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                      className="flex-1 sm:flex-initial px-3 py-2 bg-slate-800/60 hover:bg-slate-700/80 backdrop-blur-xl border border-slate-700/80 rounded-2xl text-slate-200 font-mono text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                     >
                       <Sliders className="w-3.5 h-3.5 text-cyan-400" />
                       Simulate

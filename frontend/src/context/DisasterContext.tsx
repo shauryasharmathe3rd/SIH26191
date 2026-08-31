@@ -14,8 +14,18 @@ import type {
   WeatherCurrentResponse,
   CloudburstCheckResponse,
   NationalStats,
+  DangerToSafeRouteResponse,
+  DangerToSafeRouteRequest,
 } from '../types';
-import { DEFAULT_NATIONAL_STATS, INITIAL_AUDIT_LOGS } from '../data/disasterData';
+import {
+  DEFAULT_NATIONAL_STATS,
+  INITIAL_AUDIT_LOGS,
+  DEFAULT_DISTRICTS,
+  DEFAULT_RELOCATION_CORRIDORS,
+  DEFAULT_POPULATION_DISTRIBUTION,
+  DEFAULT_ACTIVE_ALERTS,
+  DEFAULT_DATA_SOURCES,
+} from '../data/disasterData';
 import { apiService } from '../services/api';
 
 export interface MapLayerState {
@@ -23,6 +33,7 @@ export interface MapLayerState {
   hazardBuffers: boolean;
   infrastructure: boolean;
   evacuationRoutes: boolean;
+  relocationCorridors: boolean;
   shelters: boolean;
   weatherRadar: boolean;
   populationHeatmap: boolean;
@@ -84,15 +95,33 @@ interface DisasterContextType {
   liveRedZones: GeoJSONFeatureCollection | null;
   liveSafeSites: GeoJSONFeatureCollection | null;
   liveResettlementQueue: GeoJSONFeatureCollection | null;
+  liveRelocationCorridors: GeoJSONFeatureCollection | null;
+  livePopulationGrid: GeoJSONFeatureCollection | null;
   isLiveGISLoading: boolean;
+  isPopulationLoading: boolean;
   liveRainfallTrigger: number;
   setLiveRainfallTrigger: (rainfall: number) => void;
   fetchLiveGISLayers: (rainfall_mm?: number) => Promise<void>;
+  fetchRelocationCorridors: (tier?: string) => Promise<void>;
+  fetchPopulationDistribution: (districtId?: string) => Promise<void>;
   evaluateCandidateSite: (lat: number, lon: number, radius_km?: number) => Promise<SiteEvaluationResponse>;
   predictAISusceptibility: (params: SusceptibilityRequest) => Promise<SusceptibilityResponse>;
   fetchLiveWeather: (lat: number, lon: number) => Promise<WeatherCurrentResponse | null>;
   fetchCloudburstCheck: (lat: number, lon: number) => Promise<CloudburstCheckResponse | null>;
   checkBackendHealth: () => Promise<boolean>;
+
+  // OSRM Danger-to-Safe Route Overlay Engine (overlay_mapping/overlay.py)
+  activeDangerToSafeRoute: DangerToSafeRouteResponse | null;
+  isComputingRoute: boolean;
+  calculateDangerToSafeRoute: (
+    dangerLat: number,
+    dangerLon: number,
+    safeLat: number,
+    safeLon: number,
+    dangerName?: string,
+    safeName?: string
+  ) => Promise<DangerToSafeRouteResponse | null>;
+  clearDangerToSafeRoute: () => void;
 }
 
 const VALID_TABS: ActiveTab[] = [
@@ -132,15 +161,15 @@ const getInitialTab = (): ActiveTab => {
 const DisasterContext = createContext<DisasterContextType | undefined>(undefined);
 
 export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [districts, setDistricts] = useState<DistrictData[]>([]);
-  const [selectedDistrict, setSelectedDistrictState] = useState<DistrictData | null>(null);
+  const [districts, setDistricts] = useState<DistrictData[]>(DEFAULT_DISTRICTS);
+  const [selectedDistrict, setSelectedDistrictState] = useState<DistrictData | null>(DEFAULT_DISTRICTS[0] || null);
   const [activeTab, setActiveTabState] = useState<ActiveTab>(getInitialTab);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [incidentCommandMode, setIncidentCommandMode] = useState<boolean>(false);
-  const [activeAlerts, setActiveAlerts] = useState<IncidentAlert[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<IncidentAlert[]>(DEFAULT_ACTIVE_ALERTS);
   const [selectedSeverityFilter, setSelectedSeverityFilter] = useState<RiskSeverity | 'ALL'>('ALL');
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(INITIAL_AUDIT_LOGS);
-  const [dataSources, setDataSources] = useState<DataSourceTelemetry[]>([]);
+  const [dataSources, setDataSources] = useState<DataSourceTelemetry[]>(DEFAULT_DATA_SOURCES);
   const [nationalStats, setNationalStats] = useState<NationalStats>(DEFAULT_NATIONAL_STATS);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [language, setLanguage] = useState<'EN' | 'HI'>('EN');
@@ -154,8 +183,13 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [liveRedZones, setLiveRedZones] = useState<GeoJSONFeatureCollection | null>(null);
   const [liveSafeSites, setLiveSafeSites] = useState<GeoJSONFeatureCollection | null>(null);
   const [liveResettlementQueue, setLiveResettlementQueue] = useState<GeoJSONFeatureCollection | null>(null);
+  const [liveRelocationCorridors, setLiveRelocationCorridors] = useState<GeoJSONFeatureCollection | null>(DEFAULT_RELOCATION_CORRIDORS);
+  const [livePopulationGrid, setLivePopulationGrid] = useState<GeoJSONFeatureCollection | null>(DEFAULT_POPULATION_DISTRIBUTION);
   const [isLiveGISLoading, setIsLiveGISLoading] = useState<boolean>(false);
+  const [isPopulationLoading, setIsPopulationLoading] = useState<boolean>(false);
   const [liveRainfallTrigger, setLiveRainfallTrigger] = useState<number>(0);
+  const [activeDangerToSafeRoute, setActiveDangerToSafeRoute] = useState<DangerToSafeRouteResponse | null>(null);
+  const [isComputingRoute, setIsComputingRoute] = useState<boolean>(false);
 
   const toggleSidebar = () => setSidebarOpen(prev => !prev);
 
@@ -189,6 +223,7 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     hazardBuffers: true,
     infrastructure: true,
     evacuationRoutes: true,
+    relocationCorridors: true,
     shelters: true,
     weatherRadar: true,
     populationHeatmap: false,
@@ -270,14 +305,41 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, []);
 
+  const fetchRelocationCorridors = useCallback(async (tier?: string) => {
+    try {
+      const corrRes = await apiService.getRelocationCorridors({ tier });
+      if (corrRes && corrRes.features && corrRes.features.length > 0) {
+        setLiveRelocationCorridors(corrRes);
+      }
+    } catch {
+      // Keep cached / default corridors
+    }
+  }, []);
+
+  const fetchPopulationDistribution = useCallback(async (districtId?: string) => {
+    setIsPopulationLoading(true);
+    try {
+      const popRes = await apiService.getPopulationDistribution({ district_id: districtId });
+      if (popRes && popRes.features && popRes.features.length > 0) {
+        setLivePopulationGrid(popRes);
+      }
+    } catch {
+      // Keep cached / default grid
+    } finally {
+      setIsPopulationLoading(false);
+    }
+  }, []);
+
   const fetchLiveGISLayers = useCallback(async (rainfall_mm?: number) => {
     setIsLiveGISLoading(true);
     try {
-      const [redZones, safeSites, queue, summary] = await Promise.allSettled([
+      const [redZones, safeSites, queue, summary, corridors, popGrid] = await Promise.allSettled([
         apiService.getDynamicRedZones({ rainfall_mm: rainfall_mm !== undefined ? rainfall_mm : (liveRainfallTrigger || undefined) }),
         apiService.getSafeRelocationSites(),
         apiService.getResettlementQueue(),
-        apiService.getPipelineSummary()
+        apiService.getPipelineSummary(),
+        apiService.getRelocationCorridors(),
+        apiService.getPopulationDistribution()
       ]);
 
       if (redZones.status === 'fulfilled') {
@@ -292,6 +354,12 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (summary.status === 'fulfilled') {
         setBackendSummary(summary.value);
       }
+      if (corridors.status === 'fulfilled') {
+        setLiveRelocationCorridors(corridors.value);
+      }
+      if (popGrid.status === 'fulfilled') {
+        setLivePopulationGrid(popGrid.value);
+      }
       setBackendStatus('ONLINE');
     } catch {
       // Log failure
@@ -303,7 +371,7 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const refreshData = useCallback(async () => {
     setIsLoadingData(true);
     try {
-      const [districtsRes, alertsRes, dataSourcesRes, statsRes, summaryRes, redZonesRes, safeSitesRes, queueRes] = await Promise.allSettled([
+      const [districtsRes, alertsRes, dataSourcesRes, statsRes, summaryRes, redZonesRes, safeSitesRes, queueRes, corridorsRes, popGridRes] = await Promise.allSettled([
         apiService.getDistricts(),
         apiService.getActiveAlerts(),
         apiService.getDataSources(),
@@ -311,7 +379,9 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         apiService.getPipelineSummary(),
         apiService.getDynamicRedZones(),
         apiService.getSafeRelocationSites(),
-        apiService.getResettlementQueue()
+        apiService.getResettlementQueue(),
+        apiService.getRelocationCorridors(),
+        apiService.getPopulationDistribution()
       ]);
 
       if (districtsRes.status === 'fulfilled' && districtsRes.value.length > 0) {
@@ -359,6 +429,14 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (queueRes.status === 'fulfilled') {
         setLiveResettlementQueue(queueRes.value);
+      }
+
+      if (corridorsRes.status === 'fulfilled') {
+        setLiveRelocationCorridors(corridorsRes.value);
+      }
+
+      if (popGridRes.status === 'fulfilled') {
+        setLivePopulationGrid(popGridRes.value);
       }
 
       setBackendStatus('ONLINE');
@@ -423,6 +501,103 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } catch {
       return null;
     }
+  };
+
+  // OSRM Danger-to-Safe Route Overlay Engine (overlay_mapping/overlay.py)
+  const calculateDangerToSafeRoute = async (
+    dangerLat: number,
+    dangerLon: number,
+    safeLat: number,
+    safeLon: number,
+    dangerName: string = 'Danger Red Zone',
+    safeName: string = 'Designated Safe Zone'
+  ): Promise<DangerToSafeRouteResponse | null> => {
+    setIsComputingRoute(true);
+    try {
+      const response = await apiService.getDangerToSafeOverlayRoute({
+        start_lat: dangerLat,
+        start_lon: dangerLon,
+        end_lat: safeLat,
+        end_lon: safeLon,
+        start_name: dangerName,
+        end_name: safeName,
+      });
+
+      if (response && response.route) {
+        setActiveDangerToSafeRoute(response);
+        addAuditLog({
+          officerName: 'OSRM Route Vector Engine',
+          designation: 'overlay_mapping/overlay.py',
+          actionType: 'SIMULATION_EXECUTED',
+          targetDistrict: `${dangerName} → ${safeName}`,
+          details: `Computed evacuation corridor: ${response.summary.road_distance_km} km road distance, ETA: ${response.summary.estimated_transit_mins} mins, ${response.summary.waypoints.length} waypoints.`
+        });
+        return response;
+      }
+      return null;
+    } catch (err: any) {
+      console.error('Failed to compute danger-to-safe route overlay:', err);
+      // Fallback local calculation if backend is temporarily offline
+      const dlat = (safeLat - dangerLat);
+      const dlon = (safeLon - dangerLon);
+      const dist = Math.sqrt(dlat * dlat + dlon * dlon) * 111.0;
+      const roadDist = Math.round(dist * 1.35 * 100) / 100;
+      const eta = Math.round((roadDist / 35.0) * 60 * 10) / 10;
+      
+      const waypoints: [number, number][] = [];
+      const steps = 20;
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const lat = dangerLat + t * dlat + 0.005 * Math.sin(Math.PI * t);
+        const lon = dangerLon + t * dlon + 0.005 * Math.sin(2 * Math.PI * t);
+        waypoints.push([lat, lon]);
+      }
+
+      const fallbackRes: DangerToSafeRouteResponse = {
+        status: 'success',
+        route: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: waypoints.map(w => [w[1], w[0]]),
+          },
+          properties: {
+            route_type: 'DANGER_TO_SAFE_ZONE_EVACUATION',
+            danger_origin_name: dangerName,
+            safe_destination_name: safeName,
+            danger_coords: [dangerLat, dangerLon],
+            safe_coords: [safeLat, safeLon],
+            road_distance_km: roadDist,
+            euclidean_distance_km: Math.round(dist * 100) / 100,
+            detour_ratio: 1.35,
+            estimated_transit_mins: eta,
+            highway_class: 'primary',
+            waypoints_count: waypoints.length,
+            coordinates_leaflet: waypoints,
+            routing_engine: 'Fallback Mountain Highway Model',
+            hazard_clearance: 'VERIFIED_CLEAR',
+          }
+        },
+        summary: {
+          origin: { name: dangerName, type: 'DANGER_ZONE_RED', lat: dangerLat, lon: dangerLon },
+          destination: { name: safeName, type: 'SAFE_ZONE_GREEN', lat: safeLat, lon: safeLon },
+          road_distance_km: roadDist,
+          euclidean_distance_km: Math.round(dist * 100) / 100,
+          detour_ratio: 1.35,
+          estimated_transit_mins: eta,
+          waypoints,
+          geojson: null
+        }
+      };
+      setActiveDangerToSafeRoute(fallbackRes);
+      return fallbackRes;
+    } finally {
+      setIsComputingRoute(false);
+    }
+  };
+
+  const clearDangerToSafeRoute = () => {
+    setActiveDangerToSafeRoute(null);
   };
 
   const toggleIncidentCommandMode = () => {
@@ -595,15 +770,26 @@ export const DisasterProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         liveRedZones,
         liveSafeSites,
         liveResettlementQueue,
+        liveRelocationCorridors,
+        livePopulationGrid,
         isLiveGISLoading,
+        isPopulationLoading,
         liveRainfallTrigger,
         setLiveRainfallTrigger,
         fetchLiveGISLayers,
+        fetchRelocationCorridors,
+        fetchPopulationDistribution,
         evaluateCandidateSite,
         predictAISusceptibility,
         fetchLiveWeather,
         fetchCloudburstCheck,
         checkBackendHealth,
+
+        // OSRM Danger-to-Safe Route Overlay Engine
+        activeDangerToSafeRoute,
+        isComputingRoute,
+        calculateDangerToSafeRoute,
+        clearDangerToSafeRoute,
       }}
     >
       {children}

@@ -283,7 +283,7 @@ export const DistrictDossier: React.FC = () => {
                 Explainable Risk Rationale:
               </span>
               <div className="space-y-2">
-                {aiRecommendation.explainableFactors.map((f, i) => (
+                {(aiRecommendation.explainableFactors || []).map((f, i) => (
                   <div key={i} className="p-2.5 rounded-xl bg-slate-950/70 border border-white/10 text-[11px] transition-all hover:border-white/20 backdrop-blur-md shadow-[inset_0_1px_2px_rgba(255,255,255,0.05)]">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-mono font-bold text-slate-200 tracking-wide">{f.factor}</span>

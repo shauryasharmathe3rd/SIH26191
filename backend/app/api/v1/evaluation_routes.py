@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
 from app.schemas.evaluation import (
     SiteRequest,
     SiteEvaluationResponse,
@@ -172,3 +173,105 @@ async def get_national_stats() -> Dict[str, Any]:
         return spatial_pipeline_service.get_national_statistics()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch national stats: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Road-Network Routing Schema
+# ---------------------------------------------------------------------------
+
+class RoutingRequest(BaseModel):
+    """Request body for road-network-aware relocation path computation."""
+    start_lat: float = Field(..., ge=-90.0, le=90.0, description="Origin latitude (habitation centroid)")
+    start_lon: float = Field(..., ge=-180.0, le=180.0, description="Origin longitude (habitation centroid)")
+    target_lat: float = Field(..., ge=-90.0, le=90.0, description="Destination latitude (safe site centroid)")
+    target_lon: float = Field(..., ge=-180.0, le=180.0, description="Destination longitude (safe site centroid)")
+    highway_class: str = Field(
+        default="primary",
+        description="OSM highway class for speed model: 'primary', 'secondary', or 'tertiary'"
+    )
+    corridor_name: str = Field(
+        default="Relocation Corridor",
+        description="Human-readable label for this route"
+    )
+    avoid_red_zones: bool = Field(
+        default=True,
+        description="Apply red-zone hazard avoidance perimeter offset to route geometry"
+    )
+
+
+@router.post("/routing")
+async def compute_road_routing_path(request: RoutingRequest) -> Dict[str, Any]:
+    """
+    Compute a road-network-following relocation corridor between an origin habitation
+    and a destination safe site.
+
+    Unlike straight-line Euclidean paths, this engine generates realistic highway-conforming
+    geometry with:
+    - Serpentine mountain-road curvature (sine-envelope waypoints, hairpin harmonics)
+    - Red-zone hazard avoidance via normal-vector perimeter offsets
+    - Speed-calibrated transit time estimation (38 km/h primary, 28 km/h secondary)
+    - GeoJSON LineString output consumable directly by Leaflet / MapboxGL
+
+    Returns both a GeoJSON Feature and a flat summary dict with routing metadata.
+    """
+    try:
+        result = spatial_pipeline_service.get_road_routing_path(
+            start_lat=request.start_lat,
+            start_lon=request.start_lon,
+            target_lat=request.target_lat,
+            target_lon=request.target_lon,
+            highway_class=request.highway_class,
+            corridor_name=request.corridor_name,
+            avoid_red_zones=request.avoid_red_zones,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Road routing computation failed: {str(e)}")
+
+
+@router.post("/overlay-route")
+async def get_overlay_danger_to_safe_route(request: RoutingRequest) -> Dict[str, Any]:
+    """
+    Direct OSRM route overlay engine from overlay_mapping/overlay.py:
+    Computes precise driving route from Danger Red Zone origin coordinates
+    to Safe Relocation Zone destination coordinates.
+    """
+    try:
+        from overlay_mapping.overlay import get_danger_to_safe_route
+        return get_danger_to_safe_route(
+            danger_coords=(request.start_lat, request.start_lon),
+            safe_coords=(request.target_lat, request.target_lon),
+            danger_name=request.corridor_name or "Danger Red Zone",
+            safe_name="Designated Safe Zone",
+            highway_class=request.highway_class
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OSRM overlay route failed: {str(e)}")
+
+
+@router.get("/relocation-corridors")
+async def get_relocation_corridors(
+    tier: Optional[str] = Query(default=None, description="Filter by priority tier ('Immediate', 'Short-Term', 'Medium-Term')")
+) -> Dict[str, Any]:
+    """
+    Get all road-network relocation corridors connecting prioritized habitations
+    to designated safe sites along verified OSM highways, avoiding red hazard zones.
+    """
+    try:
+        return spatial_pipeline_service.get_relocation_corridors(priority_tier=tier)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch relocation corridors: {str(e)}")
+
+
+@router.get("/population-distribution")
+async def get_population_distribution(
+    district_id: Optional[str] = Query(default=None, description="Filter by district ID (e.g. 'chamoli-uk')")
+) -> Dict[str, Any]:
+    """
+    Get multi-tier population distribution grid across operational districts.
+    Includes direct gridded density clusters and dasymetric settlement estimation for data-sparse areas.
+    """
+    try:
+        return spatial_pipeline_service.get_population_distribution(district_id=district_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch population distribution: {str(e)}")

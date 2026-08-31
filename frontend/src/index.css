@@ -129,6 +129,20 @@
   animation: redZoneGlow 2.5s infinite ease-in-out;
 }
 
+/* Evacuation Route Active Directional Flow Animation */
+@keyframes routeFlow {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.route-active-flow {
+  animation: routeFlow 1.2s linear infinite !important;
+}
+
 /* Print/SITREP Export Styles */
 @media print {
   body {

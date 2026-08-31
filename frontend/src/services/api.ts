@@ -17,6 +17,8 @@ import {
   SusceptibilityResponse,
   WeatherCurrentResponse,
   WeatherForecastResponse,
+  DangerToSafeRouteRequest,
+  DangerToSafeRouteResponse,
 } from '../types';
 
 // API Base URLs
@@ -315,7 +317,51 @@ class ApiService {
   public async checkCloudburstTrigger(lat: number, lon: number): Promise<CloudburstCheckResponse> {
     return this.request<CloudburstCheckResponse>(`${this.v1Url}/weather/cloudburst-check/${lat}/${lon}`);
   }
+
+  // =========================================================================
+  // 6. OSM ROAD-ROUTING & POPULATION DISTRIBUTION ENDPOINTS
+  // =========================================================================
+
+  /**
+   * Get all road-network relocation corridors connecting prioritized habitations
+   * to designated safe sites along verified OSM highways, avoiding red hazard zones.
+   */
+  public async getRelocationCorridors(params?: { tier?: string }): Promise<GeoJSONFeatureCollection> {
+    const queryParams = new URLSearchParams();
+    if (params?.tier) {
+      queryParams.append('tier', params.tier);
+    }
+    const qs = queryParams.toString();
+    const url = `${this.v1Url}/evaluate/relocation-corridors${qs ? `?${qs}` : ''}`;
+    return this.request<GeoJSONFeatureCollection>(url);
+  }
+
+  /**
+   * Get multi-tier population distribution grid across operational districts,
+   * including direct gridded density clusters and dasymetric settlement estimation for data-sparse areas.
+   */
+  public async getPopulationDistribution(params?: { district_id?: string }): Promise<GeoJSONFeatureCollection> {
+    const queryParams = new URLSearchParams();
+    if (params?.district_id) {
+      queryParams.append('district_id', params.district_id);
+    }
+    const qs = queryParams.toString();
+    const url = `${this.v1Url}/evaluate/population-distribution${qs ? `?${qs}` : ''}`;
+    return this.request<GeoJSONFeatureCollection>(url);
+  }
+
+  /**
+   * Compute and fetch driving route path from Danger/Red Zone to Safe Relocation Zone
+   * using OSRM Vector Engine from overlay_mapping/overlay.py.
+   */
+  public async getDangerToSafeOverlayRoute(payload: DangerToSafeRouteRequest): Promise<DangerToSafeRouteResponse> {
+    return this.request<DangerToSafeRouteResponse>(`${this.v1Url}/osm/route`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
 }
 
 export const apiService = new ApiService();
 export default apiService;
+

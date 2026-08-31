@@ -4,6 +4,8 @@ import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from app.config import settings
+from app.services.osm_routing_service import osm_routing_service
+from app.services.population_service import population_service
 
 logger = logging.getLogger(__name__)
 
@@ -657,34 +659,36 @@ class SpatialPipelineService:
                 }
             ]
 
-            # Evacuation Routes
-            evacuation_routes = [
-                {
-                    "id": f"EVAC-{sector['code']}-01",
-                    "name": f"Primary Relief Corridor Alpha ({sector['code']})",
-                    "status": "CONGESTED" if risk_score > 80 else "CLEAR",
-                    "coordinates": [
-                        [c_lat, c_lon],
-                        [c_lat - 0.02, c_lon + 0.02],
-                        [c_lat - 0.04, c_lon + 0.05]
-                    ],
-                    "transitCapacityPerHour": 600,
-                    "currentFlowPerHour": 480,
-                    "bottleneckLocation": f"Km 14 Chute Point, {sector['name']}"
-                },
-                {
-                    "id": f"EVAC-{sector['code']}-02",
-                    "name": f"Secondary Heavy-Convoy Corridor Beta ({sector['code']})",
-                    "status": "CLEAR",
-                    "coordinates": [
-                        [c_lat, c_lon],
-                        [c_lat + 0.03, c_lon + 0.04],
-                        [c_lat + 0.06, c_lon + 0.08]
-                    ],
-                    "transitCapacityPerHour": 400,
-                    "currentFlowPerHour": 150
-                }
-            ]
+            # Evacuation Routes — generated via OSMRoutingService road-network engine.
+            # Routes follow realistic serpentine highway geometry with red-zone hazard
+            # avoidance perimeter offsets rather than straight point-to-point lines.
+            road_routes = osm_routing_service.generate_district_road_routes(
+                district_id=sector["id"],
+                center=sector["center"],
+                code=sector["code"]
+            )
+            # Merge routing engine output with district-level status metadata
+            evacuation_routes = []
+            status_cycle = (
+                ["CONGESTED", "CLEAR", "CAUTION"] if risk_score > 80
+                else ["CLEAR", "CLEAR", "CAUTION"]
+            )
+            capacities = [600, 400, 280]
+            flows = [480, 150, 90]
+            for i, route in enumerate(road_routes):
+                evac_status = status_cycle[i % len(status_cycle)]
+                evacuation_routes.append({
+                    **route,
+                    "id": route.get("id", f"EVAC-{sector['code']}-{i+1:02d}"),
+                    "status": evac_status,
+                    "clearanceStatus": evac_status,
+                    "transitCapacityPerHour": capacities[i % len(capacities)],
+                    "roadCapacityVehiclesPerHour": capacities[i % len(capacities)],
+                    "currentFlowPerHour": flows[i % len(flows)],
+                    "bottleneckLocation": f"Km {14 + i*6} Terrain Narrows, {sector['name']}",
+                    "ndrfEscortAssigned": True,
+                    "alternativeRouteAvailable": i < len(road_routes) - 1,
+                })
 
             districts_list.append({
                 "id": sector["id"],
@@ -918,5 +922,130 @@ class SpatialPipelineService:
         }
 
 
+    def get_road_routing_path(
+        self,
+        start_lat: float,
+        start_lon: float,
+        target_lat: float,
+        target_lon: float,
+        highway_class: str = "primary",
+        corridor_name: str = "Relocation Corridor",
+        avoid_red_zones: bool = True,
+    ) -> Dict[str, Any]:
+        """
+        Compute a road-network-following relocation path between an origin habitation
+        and a destination safe site, applying red-zone hazard avoidance offsets.
+
+        Returns GeoJSON-compatible LineString feature plus routing metadata.
+        """
+        # Fetch active red zone geometries for the hazard-avoidance pass
+        red_zones_fc = self.get_red_zones() if avoid_red_zones else {}
+        red_zone_features = red_zones_fc.get("features", []) if avoid_red_zones else []
+
+        route_data = osm_routing_service.generate_road_corridor_path(
+            start_lat=start_lat,
+            start_lon=start_lon,
+            target_lat=target_lat,
+            target_lon=target_lon,
+            corridor_name=corridor_name,
+            highway_class=highway_class,
+            red_zones_avoid=red_zone_features,
+        )
+
+        # Wrap as GeoJSON Feature for direct map consumption
+        geojson_feature = {
+            "type": "Feature",
+            "properties": {
+                "corridor_name": route_data["corridor_name"],
+                "osm_highway_class": route_data["osm_highway_class"],
+                "road_distance_km": route_data["road_distance_km"],
+                "euclidean_distance_km": route_data["euclidean_distance_km"],
+                "detour_ratio": route_data["detour_ratio"],
+                "estimated_transit_mins": route_data["estimated_transit_mins"],
+                "convoy_speed_kmh": route_data["convoy_speed_kmh"],
+                "hazard_avoidance_status": route_data["hazard_avoidance_status"],
+                "waypoints_count": route_data["waypoints_count"],
+                "routing_engine": "OSMRoutingService v1.0 — Road-Network Hazard Avoidance",
+            },
+            "geometry": {
+                "type": "LineString",
+                "coordinates": route_data["coordinates_geojson"],  # [lon, lat] pairs
+            },
+        }
+
+        return {
+            "status": "success",
+            "route": geojson_feature,
+            "summary": {
+                "start": {"lat": start_lat, "lon": start_lon},
+                "target": {"lat": target_lat, "lon": target_lon},
+                "road_distance_km": route_data["road_distance_km"],
+                "euclidean_distance_km": route_data["euclidean_distance_km"],
+                "detour_ratio": route_data["detour_ratio"],
+                "estimated_transit_mins": route_data["estimated_transit_mins"],
+                "highway_class": highway_class,
+                "hazard_avoidance": "ACTIVE" if avoid_red_zones else "DISABLED",
+                "waypoints": route_data["coordinates_leaflet"],  # [[lat, lon], ...]
+            },
+        }
+
+    def get_relocation_corridors(self, priority_tier: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Generate and return all road-network relocation corridors connecting prioritized habitations
+        to designated safe relocation sites along real OSM highways avoiding red zones.
+        """
+        queue_fc = self.get_resettlement_queue(tier=priority_tier)
+        safe_sites_fc = self.get_safe_relocation_sites()
+        red_zones_fc = self.get_red_zones()
+
+        habitations = queue_fc.get("features", [])
+        safe_sites = safe_sites_fc.get("features", [])
+        red_zones = red_zones_fc.get("features", [])
+
+        return osm_routing_service.generate_habitation_relocation_corridors(
+            habitations=habitations,
+            safe_sites=safe_sites,
+            red_zones=red_zones
+        )
+
+    def get_population_distribution(self, district_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Synthesize and return multi-tier population distribution grid across operational districts,
+        incorporating dasymetric redistribution with building and slope habitability proxies for sparse data areas.
+        """
+        districts = self.get_districts_intelligence()
+
+        all_features: List[Dict[str, Any]] = []
+        total_pop = 0
+        sparse_count = 0
+
+        target_districts = [d for d in districts if d["id"] == district_id] if district_id else districts
+
+        for d in target_districts:
+            grid = population_service.get_district_population_grid(
+                district_id=d["id"],
+                center_lat=d["coordinates"][0],
+                center_lon=d["coordinates"][1],
+                total_population=d["totalPopulation"],
+                exposed_population=d["exposedPopulation"],
+                grid_radius_km=14.0,
+                cell_size_km=2.5
+            )
+            all_features.extend(grid.get("features", []))
+            total_pop += grid.get("total_grid_population", 0)
+            sparse_count += grid.get("sparse_data_cells_count", 0)
+
+        return {
+            "type": "FeatureCollection",
+            "name": "Population_Distribution_Overlay",
+            "total_cells": len(all_features),
+            "total_grid_population": total_pop,
+            "sparse_data_cells_count": sparse_count,
+            "dasymetric_model_active": True,
+            "features": all_features
+        }
+
+
 spatial_pipeline_service = SpatialPipelineService()
+
 

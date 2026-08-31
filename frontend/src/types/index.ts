@@ -7,7 +7,11 @@ export type HazardCategory =
   | 'Glacial Lake Outburst (GLOF)' 
   | 'Land Subsidence' 
   | 'Urban Waterlogging' 
-  | 'Seismic Vulnerability';
+  | 'Seismic Vulnerability'
+  | 'GEOLOGICAL'
+  | 'HYDROLOGICAL'
+  | 'METEOROLOGICAL'
+  | string;
 
 export interface GeoCoordinate {
   lat: number;
@@ -17,27 +21,32 @@ export interface GeoCoordinate {
 export interface HazardZone {
   id: string;
   name: string;
-  type: 'flood_inundation' | 'landslide_debris' | 'cyclone_surge' | 'seismic_fault' | 'subsidence';
+  type?: 'flood_inundation' | 'landslide_debris' | 'cyclone_surge' | 'seismic_fault' | 'subsidence' | string;
   severity: RiskSeverity;
   coordinates: [number, number][]; // Polygon vertices
   areaSqKm: number;
-  affectedPopulation: number;
+  affectedPopulation?: number;
+  populationAtRisk?: number;
   bufferRadiusMeters?: number;
   waterLevelMeters?: number;
   slopeAngleDeg?: number;
+  hazardType?: string;
+  returnPeriodYears?: number;
+  [key: string]: any;
 }
 
 export interface CriticalInfrastructure {
   id: string;
   name: string;
-  type: 'hospital' | 'shelter' | 'bridge' | 'fire_station' | 'power_grid' | 'helipad' | 'relief_hub' | 'dam';
-  status: 'operational' | 'at_risk' | 'inundated' | 'evacuated';
+  type: 'hospital' | 'shelter' | 'bridge' | 'fire_station' | 'power_grid' | 'helipad' | 'relief_hub' | 'dam' | string;
+  status: 'operational' | 'at_risk' | 'inundated' | 'evacuated' | string;
   coordinates: [number, number];
   capacity?: number;
   currentOccupancy?: number;
   contact?: string;
-  districtId: string;
-  criticality: 'CRITICAL' | 'ESSENTIAL' | 'SUPPORT';
+  districtId?: string;
+  criticality?: 'CRITICAL' | 'ESSENTIAL' | 'SUPPORT' | string;
+  [key: string]: any;
 }
 
 export interface EvacuationRoute {
@@ -48,15 +57,21 @@ export interface EvacuationRoute {
   toShelter?: string;
   coordinates: [number, number][];
   distanceKm?: number;
+  euclideanDistanceKm?: number;
+  detourRatio?: number;
   estimatedTransitMins?: number;
-  clearanceStatus?: 'CLEAR' | 'CONGESTED' | 'BLOCKED' | 'CAUTION';
-  status?: 'CLEAR' | 'CONGESTED' | 'BLOCKED' | 'CAUTION';
+  clearanceStatus?: 'CLEAR' | 'CONGESTED' | 'BLOCKED' | 'CAUTION' | string;
+  status?: 'CLEAR' | 'CONGESTED' | 'BLOCKED' | 'CAUTION' | string;
+  osmHighwayClass?: string;
   roadCapacityVehiclesPerHour?: number;
   transitCapacityPerHour?: number;
   currentFlowPerHour?: number;
   bottleneckLocation?: string;
   ndrfEscortAssigned?: boolean;
   alternativeRouteAvailable?: boolean;
+  hazardAvoidance?: string;
+  roadSegments?: any[];
+  [key: string]: any;
 }
 
 export interface CapacityMetric {
@@ -64,9 +79,10 @@ export interface CapacityMetric {
   current: number;
   max: number;
   unit: string;
-  deficitOrSurplus: number; // positive = surplus, negative = deficit
-  status: 'SURPLUS' | 'ADEQUATE' | 'DEFICIT' | 'CRITICAL_DEFICIT';
+  deficitOrSurplus?: number; // positive = surplus, negative = deficit
+  status: 'SURPLUS' | 'ADEQUATE' | 'DEFICIT' | 'CRITICAL_DEFICIT' | string;
   burnRatePerDay?: string;
+  [key: string]: any;
 }
 
 export interface DistrictCarryingCapacity {
@@ -77,6 +93,7 @@ export interface DistrictCarryingCapacity {
   roadEvacuationFlow: CapacityMetric;
   emergencyResponders: CapacityMetric;
   compositeCapacityRatio: number; // 0 to 100%
+  [key: string]: any;
 }
 
 export interface VulnerabilityAssessment {
@@ -88,6 +105,7 @@ export interface VulnerabilityAssessment {
   historicalExposure: number;
   compositeIndex: number; // 0 - 100
   keyRiskDrivers: string[];
+  [key: string]: any;
 }
 
 export interface ExplainableFactor {
@@ -99,27 +117,31 @@ export interface ExplainableFactor {
 
 export interface AiDecisionRecommendation {
   id: string;
-  priority: 'PRIORITY_1' | 'PRIORITY_2' | 'PRIORITY_3' | 'PRIORITY_4';
-  priorityLabel: 'Priority 1 — Immediate Relocation' | 'Priority 2 — High Readiness Relocation' | 'Priority 3 — Moderate Watch' | 'Priority 4 — Routine Monitoring';
+  districtId?: string;
+  priority: 'PRIORITY_1' | 'PRIORITY_2' | 'PRIORITY_3' | 'PRIORITY_4' | string;
+  priorityLabel: 'Priority 1 — Immediate Relocation' | 'Priority 2 — High Readiness Relocation' | 'Priority 3 — Moderate Watch' | 'Priority 4 — Routine Monitoring' | string;
   actionTitle: string;
   executiveSummary: string;
   confidenceScore: number; // e.g. 94%
-  riskTrajectory: 'RAPIDLY_ESCALATING' | 'INCREASING' | 'STABLE' | 'SUBSIDING';
+  riskTrajectory?: 'RAPIDLY_ESCALATING' | 'INCREASING' | 'STABLE' | 'SUBSIDING' | string;
   populationToRelocate: number;
   recommendedEvacuationWindow: string; // e.g. "4–6 hours before cutoff"
   designatedShelterIds: string[];
   designatedShelterNames: string[];
-  explainableFactors: ExplainableFactor[];
+  explainableFactors?: ExplainableFactor[];
   requiredTransportUnits: {
     buses: number;
     ambulances: number;
-    boats: number;
+    boats?: number;
     ndrfPersonnel: number;
+    reliefTrucks?: number;
+    [key: string]: any;
   };
   approved: boolean;
   approvedBy?: string;
   approvalTimestamp?: string;
   orderNumber?: string;
+  [key: string]: any;
 }
 
 export interface DistrictData {
@@ -129,6 +151,8 @@ export interface DistrictData {
   code: string;
   coordinates: [number, number];
   bounds?: [[number, number], [number, number]];
+  center?: [number, number];
+  zoom?: number;
   riskScore: number; // 0 - 100
   riskLevel: RiskSeverity;
   primaryHazard: HazardCategory;
@@ -141,7 +165,7 @@ export interface DistrictData {
     differentlyAbled: number;
     livestockCount: number;
   };
-  operationalStatus: 'STANDBY' | 'STAGE_1_ALERT' | 'STAGE_2_WARNING' | 'EMERGENCY_RED_ALERT';
+  operationalStatus: 'STANDBY' | 'STAGE_1_ALERT' | 'STAGE_2_WARNING' | 'EMERGENCY_RED_ALERT' | string;
   carryingCapacity: DistrictCarryingCapacity;
   vulnerability: VulnerabilityAssessment;
   aiRecommendation: AiDecisionRecommendation;
@@ -157,6 +181,8 @@ export interface DistrictData {
     riverDischargeCusecs?: number;
     waterLevelAboveDangerMm?: number;
     windSpeedKmph?: number;
+    windSpeedKmh?: number;
+    [key: string]: any;
   };
   historicalEventsCount: number;
 }
@@ -183,12 +209,17 @@ export interface DataSourceTelemetry {
   name: string;
   agency: string;
   protocol: string;
+  type?: string;
   latencyMs: number;
-  status: 'ONLINE' | 'DEGRADED' | 'SYNCING' | 'OFFLINE';
+  status: 'ONLINE' | 'DEGRADED' | 'SYNCING' | 'OFFLINE' | string;
   lastSync: string;
   recordsIngestedToday: number;
-  confidence: 'High' | 'Moderate' | 'Low';
-  coverageType: string;
+  confidence?: 'High' | 'Moderate' | 'Low' | string;
+  confidenceScore?: number;
+  coverageType?: string;
+  coverage?: string;
+  resolution?: string;
+  updateFrequency?: string;
 }
 
 export interface AuditLogEntry {
@@ -329,7 +360,16 @@ export interface GeoJSONFeatureCollection {
   name?: string;
   crs?: any;
   total_count?: number;
+  total_corridors?: number;
+  total_cells?: number;
+  total_grid_population?: number;
+  sparse_data_cells_count?: number;
+  dasymetric_model_active?: boolean;
+  data_resolution?: string;
+  coverage_radius_km?: number;
+  district_id?: string;
   features: GeoJSONFeature[];
+  [key: string]: any;
 }
 
 export interface PipelineSummaryResponse {
@@ -460,4 +500,107 @@ export interface BackendRootResponse {
   endpoints: Record<string, string>;
   services: Record<string, string>;
 }
+
+export interface RelocationCorridorProperties {
+  corridor_id: string;
+  habitation_id: string;
+  habitation_name: string;
+  priority_tier: string;
+  population: number;
+  destination_site_id: string;
+  destination_cci: number;
+  destination_capacity_families: number;
+  road_name: string;
+  osm_highway_class: string;
+  road_distance_km: number;
+  euclidean_distance_km: number;
+  detour_ratio: number;
+  estimated_transit_mins: number;
+  convoy_speed_kmh: number;
+  hazard_avoidance_status: string;
+  waypoints_count: number;
+  color: string;
+  clearance_status: 'CLEAR' | 'CAUTION' | 'CONGESTED';
+  coordinates_leaflet: [number, number][];
+}
+
+export interface PopulationCellProperties {
+  cell_id: string;
+  district_id: string;
+  center: [number, number];
+  population: number;
+  density_per_sqkm: number;
+  area_sqkm: number;
+  density_tier: 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH' | 'EXTREME';
+  density_label: string;
+  color: string;
+  demographics: {
+    elderly: number;
+    children: number;
+    differently_abled: number;
+    livestock: number;
+  };
+  data_source: 'HIGH_RES_GRIDDED' | 'DASYMETRIC_ESTIMATION';
+  is_estimated: boolean;
+  confidence_score: number;
+  data_provenance_note: string;
+  evacuation_priority: 'CRITICAL' | 'HIGH' | 'NORMAL';
+}
+
+export interface DangerToSafeRouteRequest {
+  start_lat: number;
+  start_lon: number;
+  end_lat: number;
+  end_lon: number;
+  start_name?: string;
+  end_name?: string;
+}
+
+export interface DangerToSafeRouteResponse {
+  status: string;
+  route: {
+    type: 'Feature';
+    geometry: {
+      type: 'LineString';
+      coordinates: [number, number][]; // [lon, lat] pairs
+    };
+    properties: {
+      route_type: string;
+      danger_origin_name: string;
+      safe_destination_name: string;
+      danger_coords: [number, number];
+      safe_coords: [number, number];
+      road_distance_km: number;
+      euclidean_distance_km: number;
+      detour_ratio: number;
+      estimated_transit_mins: number;
+      highway_class: string;
+      waypoints_count: number;
+      coordinates_leaflet: [number, number][]; // [lat, lon] pairs
+      routing_engine: string;
+      hazard_clearance: string;
+    };
+  };
+  summary: {
+    origin: {
+      name: string;
+      type: string;
+      lat: number;
+      lon: number;
+    };
+    destination: {
+      name: string;
+      type: string;
+      lat: number;
+      lon: number;
+    };
+    road_distance_km: number;
+    euclidean_distance_km: number;
+    detour_ratio: number;
+    estimated_transit_mins: number;
+    waypoints: [number, number][];
+    geojson: any;
+  };
+}
+
 
