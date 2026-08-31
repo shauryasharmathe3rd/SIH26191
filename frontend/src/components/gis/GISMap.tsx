@@ -228,7 +228,13 @@ const DANGER_SAFE_PRESETS = [
     danger: { name: 'Shimla Slope Instability Zone', lat: 31.1048, lon: 77.1734 },
     safe: { name: 'Taradevi Stable Ridge Safe Parcel', lat: 31.0650, lon: 77.1350 },
   },
-];
+  {
+    id: 'Custom-Route-1',
+    label: 'Spiti Riverbank Ward ➔ Safe Site 066',
+    danger: { name: 'Spiti Riverbank Ward', lat: 31.6689, lon: 78.9642 },
+    safe: { name: 'Safe Site 066', lat: 31.9618, lon: 79.4325},
+  },
+];  
 
 // Component to capture mouse coordinates for government command HUD
 const MouseCoordinateTracker: React.FC<{ onCoordChange: (lat: number, lng: number) => void }> = ({ onCoordChange }) => {
