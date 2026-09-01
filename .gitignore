@@ -2,3 +2,7 @@ srtm_52_06.zip
 srtm_52_06/
 .env
 .venv
+backend/data_pipeline/raw/
+__pycache__/
+*.py[cod]
+.DS_Store

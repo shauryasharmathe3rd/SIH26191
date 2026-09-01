@@ -1,0 +1,161 @@
+{
+  "project": "RESITE-GIS Hazard Susceptibility Model Pre-Training",
+  "study_area": {
+    "district": "Chamoli District, Uttarakhand, India",
+    "crs": "EPSG:32643 (UTM Zone 43N)",
+    "spatial_resolution_m": 30.0,
+    "grid_dimensions": {
+      "height": 4586,
+      "width": 3860,
+      "total_cells": 17701960,
+      "valid_cells": 14349161
+    },
+    "bounds_utm": [
+      872060.0,
+      3314100.0,
+      987870.0,
+      3451680.0
+    ]
+  },
+  "datasets_ingested": {
+    "dem": "srtm_52_06.tif (SRTM 90m v4.1 reprojected to 30m)",
+    "ndvi": "Chamoli_Sentinel2_NDVI_10m.tif (Sentinel-2 Optical L2A 10m resampled to 30m)",
+    "lulc": "Chamoli_ESA_WorldCover_LULC_10m.tif (ESA WorldCover 10m resampled to 30m)",
+    "precipitation": "gpm_v07_precip_2023_7.tif (NASA GPM IMERG L3 v07 resampled to 30m)",
+    "waterways": "india-260824.osm.pbf (OSM Vector waterways rasterized to 30m)",
+    "faults": "Himalayan Main Central Thrust (MCT) Regional Shear Zone Proxy Model",
+    "landslide_catalog": "Global_Landslide_Catalog_Export_rows.json (NASA GLC Ground Truth)"
+  },
+  "dataset_splits": {
+    "total_samples": 9995,
+    "train_samples": 6996,
+    "val_samples": 1499,
+    "test_samples": 1500,
+    "positive_class_ratio": 0.4997498691082001,
+    "feature_dimension": 12,
+    "feature_names": [
+      "elevation",
+      "slope",
+      "aspect",
+      "plan_curvature",
+      "profile_curvature",
+      "twi",
+      "spi",
+      "dist_to_streams",
+      "dist_to_faults",
+      "ndvi",
+      "lulc",
+      "precip_gpm"
+    ]
+  },
+  "feature_statistics": {
+    "elevation": {
+      "mean_raw": 4238.458984375,
+      "std_raw": 1551.7845458984375,
+      "min_raw": 624.0208740234375,
+      "max_raw": 6794.04248046875,
+      "standard_scaler_mean": 4238.458973914572,
+      "standard_scaler_scale": 1551.784545801353
+    },
+    "slope": {
+      "mean_raw": 19.744688034057617,
+      "std_raw": 13.908089637756348,
+      "min_raw": 0.0,
+      "max_raw": 47.28487777709961,
+      "standard_scaler_mean": 19.744688817033126,
+      "standard_scaler_scale": 13.90808913573529
+    },
+    "aspect": {
+      "mean_raw": 176.31251525878906,
+      "std_raw": 106.47866821289062,
+      "min_raw": 0.0,
+      "max_raw": 359.9808654785156,
+      "standard_scaler_mean": 176.3125259155134,
+      "standard_scaler_scale": 106.47866388485961
+    },
+    "plan_curvature": {
+      "mean_raw": -0.000757330097258091,
+      "std_raw": 0.02734183706343174,
+      "min_raw": -0.8608590960502625,
+      "max_raw": 0.7705015540122986,
+      "standard_scaler_mean": -0.0007573300429666134,
+      "standard_scaler_scale": 0.027341837148604237
+    },
+    "profile_curvature": {
+      "mean_raw": 0.000217456414247863,
+      "std_raw": 0.0028436786960810423,
+      "min_raw": -0.016743918880820274,
+      "max_raw": 0.01964365504682064,
+      "standard_scaler_mean": 0.00021745641178595073,
+      "standard_scaler_scale": 0.0028436785878284093
+    },
+    "twi": {
+      "mean_raw": 6.081515312194824,
+      "std_raw": 1.5456119775772095,
+      "min_raw": 0.0,
+      "max_raw": 11.50429916381836,
+      "standard_scaler_mean": 6.081515107037614,
+      "standard_scaler_scale": 1.5456119899607226
+    },
+    "spi": {
+      "mean_raw": 35.12066650390625,
+      "std_raw": 19.66145133972168,
+      "min_raw": 0.0,
+      "max_raw": 129.39044189453125,
+      "standard_scaler_mean": 35.120666287400645,
+      "standard_scaler_scale": 19.661451859722547
+    },
+    "dist_to_streams": {
+      "mean_raw": 2958.804931640625,
+      "std_raw": 2996.435302734375,
+      "min_raw": 0.0,
+      "max_raw": 14074.732421875,
+      "standard_scaler_mean": 2958.805193675866,
+      "standard_scaler_scale": 2996.435343844299
+    },
+    "dist_to_faults": {
+      "mean_raw": 35301.5546875,
+      "std_raw": 20158.775390625,
+      "min_raw": 1.595862627029419,
+      "max_raw": 84083.953125,
+      "standard_scaler_mean": 35301.550897859895,
+      "standard_scaler_scale": 20158.77383701794
+    },
+    "ndvi": {
+      "mean_raw": 0.18561193346977234,
+      "std_raw": 0.30608707666397095,
+      "min_raw": -0.3514133095741272,
+      "max_raw": 0.8945906758308411,
+      "standard_scaler_mean": 0.18561194299797423,
+      "standard_scaler_scale": 0.30608708374134264
+    },
+    "lulc": {
+      "mean_raw": 55.1915397644043,
+      "std_raw": 25.62105369567871,
+      "min_raw": 10.0,
+      "max_raw": 100.0,
+      "standard_scaler_mean": 55.1915380217267,
+      "standard_scaler_scale": 25.621054658838197
+    },
+    "precip_gpm": {
+      "mean_raw": 423.51763916015625,
+      "std_raw": 175.96986389160156,
+      "min_raw": 179.59249877929688,
+      "max_raw": 767.3812866210938,
+      "standard_scaler_mean": 423.5176487263439,
+      "standard_scaler_scale": 175.96985848481404
+    }
+  },
+  "files_generated": [
+    "train_dataset.pt",
+    "val_dataset.pt",
+    "test_dataset.pt",
+    "training_tensors.npz",
+    "scaler.joblib",
+    "scaler_params.json",
+    "chamoli_waterways.geojson",
+    "dataset_summary.json"
+  ],
+  "training_ready": true,
+  "status": "Pre-processing complete. Training epochs NOT started as instructed."
+}
