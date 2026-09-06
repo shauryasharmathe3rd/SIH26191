@@ -4,6 +4,7 @@ import random
 from typing import Any, Dict, List, Optional
 import httpx
 from app.config import settings
+from app.core.cache import weather_cache
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class WeatherService:
         self.api_key = settings.OPENWEATHER_API_KEY
         self.base_url = settings.OPENWEATHER_BASE_URL
 
+    @weather_cache.cached(ttl=300)
     async def get_current_weather(self, lat: float, lon: float) -> Dict[str, Any]:
         """Fetch current weather from OpenWeatherMap or fallback meteorological estimator"""
         if self.api_key:

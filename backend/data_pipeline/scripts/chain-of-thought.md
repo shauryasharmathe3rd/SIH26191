@@ -125,11 +125,7 @@
           Population Density Factor
 
   • Evaluates:
-      • Slope stability (S₁): Unbuilt land with slope
-
-
-       ∘
-    <15
+      • Slope stability (S₁): Unbuilt land with slope < 15
 
      - Hydrological safety (S₂): Buffer exclusion outside flash flood and high runoff corridors
      - Road & Grid access (S₃): Network proximity to transit corridors (≤2  km)
@@ -947,3 +943,5 @@ API Request (lat, lon, rainfall_mm OR 12-feature vector)
   ### Verification
 
   • Both backend test suite and frontend TypeScript build (npm run build) completed with zero errors. 
+
+  ### Deployment ready workflow

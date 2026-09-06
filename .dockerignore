@@ -1,0 +1,32 @@
+# Git & Documentation
+.git
+.github
+*.md
+README.md
+
+# Python & Node Virtual Environments
+.venv
+venv
+env
+frontend/node_modules
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Raw & Heavy Geospatial Data (>3 GB)
+backend/data_pipeline/raw
+backend/data_pipeline/scripts/*.ipynb
+backend/data_pipeline/scripts/*.py
+backend/data_pipeline/processed/*.pt
+backend/data_pipeline/processed/*.npz
+backend/overlay_mapping
+
+# Frontend build source if building backend only
+frontend
+
+# Temp & OS Files
+.DS_Store
+*.tmp
+backend/india_route_map.html
+backend/app/services/Susceptibility-Mapping-FL-Hetero/.git

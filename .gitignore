@@ -1,8 +1,59 @@
-srtm_52_06.zip
-srtm_52_06/
-.env
-.venv
-backend/data_pipeline/raw/
+# Virtual Environments & Python Cache
+.venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+backend/app/.env
+backend/services/agentic_support/.env
+
+# Large Geospatial & Raw Data Files (> 3 GB)
+backend/data_pipeline/raw/
+*.pbf
+*.tif
+*.tiff
+*.e00
+*.tfw
+*.lyr
+*.hdr
+*.zip
+*.tar.gz
+srtm_52_06/
+srtm_52_06.zip
+
+# Large ML Datasets / Training Tensors (Keep in S3)
+backend/data_pipeline/processed/*.pt
+backend/data_pipeline/processed/*.npz
+backend/data_pipeline/scripts/processed/*.pt
+backend/data_pipeline/scripts/processed/*.npz
+
+# Heavy Notebooks & EDA output dumps
+*.ipynb
+.ipynb_checkpoints/
+
+# Frontend Build & Node Modules
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & Editor
 .DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary Generated Artifacts
+backend/india_route_map.html

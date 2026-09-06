@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import httpx
 from app.config import settings
+from app.core.cache import osm_cache
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ class OSMService:
             logger.warning(f"Overpass API network/timeout warning: {e}. Using simulated fallback.")
             return []
 
+    @osm_cache.cached(ttl=600)
     async def get_buildings(self, bbox: str) -> List[Dict[str, Any]]:
         """Get building footprints within bounding box (minLat,minLon,maxLat,maxLon)"""
         query = f"""
@@ -62,6 +64,7 @@ class OSMService:
             ]
         return elements
 
+    @osm_cache.cached(ttl=600)
     async def get_roads(self, bbox: str) -> List[Dict[str, Any]]:
         """Get highway and transit network within bounding box"""
         query = f"""
@@ -90,6 +93,7 @@ class OSMService:
             ]
         return elements
 
+    @osm_cache.cached(ttl=600)
     async def get_waterways(self, bbox: str) -> List[Dict[str, Any]]:
         """Get rivers, streams, and hydrological lines"""
         query = f"""

@@ -1,22 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { DisasterProvider, useDisaster } from './context/DisasterContext';
 import { GovernmentHeader } from './components/layout/GovernmentHeader';
 import { CommandSidebar } from './components/layout/CommandSidebar';
 import { NationalOverview } from './components/operations/NationalOverview';
-import { GISMap } from './components/gis/GISMap';
 import { DistrictDossier } from './components/intelligence/DistrictDossier';
-import { ProactiveRelocationModule } from './components/decision/ProactiveRelocationModule';
-import { ScenarioSimulator } from './components/decision/ScenarioSimulator';
-import { CarryingCapacityView } from './components/analytics/CarryingCapacityView';
-import { VulnerabilityAssessmentView } from './components/analytics/VulnerabilityAssessmentView';
-import { IncidentCommandCenter } from './components/command/IncidentCommandCenter';
 import { ActiveAlertsView } from './components/operations/ActiveAlertsView';
-import { DataSourcesView } from './components/system/DataSourcesView';
-import { OfficialSITREPReport } from './components/system/OfficialSITREPReport';
-import { AuditLogView } from './components/system/AuditLogView';
-import { LandingPage } from './components/landing/LandingPage';
-import { PanelRightClose, PanelRightOpen, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
+
+// Code-split heavy visualization & sub-modules for fast initial page load on CloudFront/S3
+const GISMap = lazy(() => import('./components/gis/GISMap').then(m => ({ default: m.GISMap })));
+const IncidentCommandCenter = lazy(() => import('./components/command/IncidentCommandCenter').then(m => ({ default: m.IncidentCommandCenter })));
+const CarryingCapacityView = lazy(() => import('./components/analytics/CarryingCapacityView').then(m => ({ default: m.CarryingCapacityView })));
+const VulnerabilityAssessmentView = lazy(() => import('./components/analytics/VulnerabilityAssessmentView').then(m => ({ default: m.VulnerabilityAssessmentView })));
+const ProactiveRelocationModule = lazy(() => import('./components/decision/ProactiveRelocationModule').then(m => ({ default: m.ProactiveRelocationModule })));
+const ScenarioSimulator = lazy(() => import('./components/decision/ScenarioSimulator').then(m => ({ default: m.ScenarioSimulator })));
+const OfficialSITREPReport = lazy(() => import('./components/system/OfficialSITREPReport').then(m => ({ default: m.OfficialSITREPReport })));
+const AuditLogView = lazy(() => import('./components/system/AuditLogView').then(m => ({ default: m.AuditLogView })));
+const DataSourcesView = lazy(() => import('./components/system/DataSourcesView').then(m => ({ default: m.DataSourcesView })));
+const LandingPage = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
+
+const ComponentLoader = () => (
+  <div className="flex flex-col items-center justify-center min-h-[400px] w-full gap-3 text-slate-400">
+    <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+    <span className="text-xs font-mono tracking-wider uppercase text-slate-400">
+      Loading Intelligence Module...
+    </span>
+  </div>
+);
 
 const DashboardContent: React.FC = () => {
   const {
@@ -24,7 +35,7 @@ const DashboardContent: React.FC = () => {
     incidentCommandMode,
   } = useDisaster();
 
-  const [dossierOpen, setDossierOpen] = useState(true);
+  const [dossierOpen] = useState(true);
 
   // If on Landing Page, render the dedicated full-screen public landing page with smooth transition
   if (activeTab === 'landing_page') {
@@ -38,7 +49,9 @@ const DashboardContent: React.FC = () => {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           className="min-h-screen w-full"
         >
-          <LandingPage />
+          <Suspense fallback={<ComponentLoader />}>
+            <LandingPage />
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     );
@@ -48,7 +61,11 @@ const DashboardContent: React.FC = () => {
   const renderMainView = () => {
     // If Incident Command Mode is active and tab is incident_command or national_overview, give priority to EOC
     if (incidentCommandMode && (activeTab === 'incident_command' || activeTab === 'national_overview')) {
-      return <IncidentCommandCenter />;
+      return (
+        <Suspense fallback={<ComponentLoader />}>
+          <IncidentCommandCenter />
+        </Suspense>
+      );
     }
 
     switch (activeTab) {
@@ -58,36 +75,72 @@ const DashboardContent: React.FC = () => {
         return (
           <div className="space-y-4">
             <div className="h-[580px] rounded overflow-hidden">
-              <GISMap height="100%" />
+              <Suspense fallback={<ComponentLoader />}>
+                <GISMap height="100%" />
+              </Suspense>
             </div>
             <DistrictDossier />
           </div>
         );
       case 'incident_command':
-        return <IncidentCommandCenter />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <IncidentCommandCenter />
+          </Suspense>
+        );
       case 'active_alerts':
         return <ActiveAlertsView />;
       case 'risk_map':
       case 'red_zones':
         return (
           <div className="h-[calc(100vh-140px)] min-h-[580px] rounded overflow-hidden">
-            <GISMap height="100%" />
+            <Suspense fallback={<ComponentLoader />}>
+              <GISMap height="100%" />
+            </Suspense>
           </div>
         );
       case 'carrying_capacity':
-        return <CarryingCapacityView />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <CarryingCapacityView />
+          </Suspense>
+        );
       case 'vulnerability_assessment':
-        return <VulnerabilityAssessmentView />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <VulnerabilityAssessmentView />
+          </Suspense>
+        );
       case 'relocation_intelligence':
-        return <ProactiveRelocationModule />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <ProactiveRelocationModule />
+          </Suspense>
+        );
       case 'scenario_simulation':
-        return <ScenarioSimulator />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <ScenarioSimulator />
+          </Suspense>
+        );
       case 'data_sources':
-        return <DataSourcesView />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <DataSourcesView />
+          </Suspense>
+        );
       case 'reports_sitrep':
-        return <OfficialSITREPReport />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <OfficialSITREPReport />
+          </Suspense>
+        );
       case 'audit_logs':
-        return <AuditLogView />;
+        return (
+          <Suspense fallback={<ComponentLoader />}>
+            <AuditLogView />
+          </Suspense>
+        );
       case 'settings':
         return (
           <div className="p-6 bg-[#0B192C] border border-slate-700 rounded shadow-gov space-y-4 font-mono text-xs">
@@ -106,15 +159,6 @@ const DashboardContent: React.FC = () => {
         return <NationalOverview />;
     }
   };
-
-  // Determine if right dossier panel should be displayed in command center
-  const shouldShowRightDossier =
-    dossierOpen &&
-    activeTab !== 'district_intelligence' &&
-    activeTab !== 'reports_sitrep' &&
-    activeTab !== 'audit_logs' &&
-    activeTab !== 'data_sources' &&
-    activeTab !== 'settings';
 
   return (
     <motion.div
@@ -159,7 +203,6 @@ const DashboardContent: React.FC = () => {
             </motion.div>
           </AnimatePresence>
         </main>
-
       </div>
     </motion.div>
   );
